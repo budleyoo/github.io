@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width" />
+	<meta http-equiv="x-ua-compatible" content="ie=edge">
+
+	<title>{% if page_title %}{{ page_title }} - {% endif %}{{ site_title }}</title>
+	{% if page_description %}<meta name="description" content="{{ page_description }}" />{% endif %}
+
+	{% if favicon %}<link rel="shortcut icon" href="{{ favicon }}">{% endif %}
+
+	{% if slab_options.enable_lightbox %}
+	<link rel="preload" href="{{ cdn_base_url }}assets/dist/lightbox-dunked.min.css" media="screen" as="style" onload="this.rel='stylesheet'"/>
+	{% endif %}
+	{% if template_css %}<link rel="stylesheet" href="{{ template_css }}" media="screen" />{% endif %}
+
+	<script type="text/javascript">document.documentElement.className = document.documentElement.className.replace(/\bno-js\b/,'js'); if (!("ontouchstart" in document.documentElement)) { document.documentElement.className += " no-touch"; }</script>
+	{{ template_inline_head_scripts() }}
+	{{ custom_css }}
+
+	{% if not is_preview %}
+	<script>this.top.location !== this.location && (this.top.location = this.location);</script>
+  	{% endif %}
+
+  	<!-- BEGIN Open Graph -->
+	{% if page_title %}<meta property="og:title" content="{{ page_title }}" />{% endif %}
+	{% if page_description %}<meta property="og:description" content="{{ page_description }}" />{% endif %}
+	<meta property="og:site_name" content="{{ site_title }}" />
+	{% if is_project %}
+		{% if project.thumb_url %}<meta property="og:image" content="{{ project.thumb_url }}" />{% endif %}
+	{% else %}
+		{% if logo %}<meta property="og:image" content="{{ logo }}" />{% endif %}
+	{% endif %}
+	{% if is_project %}
+		<meta property="og:url" content="{{ project.permalink }}" />
+	{% elseif is_page %}
+		<meta property="og:url" content="{{ page.permalink }}" />
+	{% elseif is_tag %}
+		{% for tag in tags %}
+			{% if tag.active %}<meta property="og:url" content="{{ tag.permalink }}" />{% endif %}
+		{% endfor %}
+	{% else %}
+		<meta property="og:url" content="{{ site_url }}" />
+	{% endif %}
+	<!-- END Open Graph -->
+
+</head>
+<body class="{{ body_class }}">
+
+	<div id="wrapper"{% if slab_options.right_sidebar %} class="right-sidebar"{% endif %}>
+
+		<div id="sidebar"{% if slab_options.enable_fixed_sidebar %} class="fixed"{% endif %}>
+			<header class="site-title">
+				<a href="{{ site_url }}">
+				{% if logo or logo_x2 %}
+					<img srcset="{% if logo %}{{ logo }} 1x{% endif %}{% if logo_x2 %}, {{ logo_x2 }} 2x{% endif %}" alt="{{ site_title }}">
+				{% else %}
+					{{ site_title }}
+				{% endif %}
+				</a>
+			</header>
+			{% if site_tagline %}<p class="site-tagline">{{ site_tagline }}</p>{% endif %}
+
+			{% if slab_options.show_navigation %}
+			<nav class="nav" role="navigation">
+				{{ list_pages({ active_class: 'current-page' }) }}
+			</nav>
+			{% endif %}
+
+			{{ social_icons() }}
+
+			{% if footer_text %}
+			<footer class="footer">
+				<p class="footer-text">{{ footer_text }} {{ dunked_branding() }}</p>
+			</footer>
+			{% endif %}
+		</div>
+
+		<div id="content-wrapper">
+
+			<div id="content">
+				{% if is_project %}
+					<article id="project-{{ project.id }}" class="project">
+						{% if slab_options.show_page_titles %}<h1 class="title">{{ project.title }}</h1>{% endif %}
+
+						{% if project.description %}<div class="project-description">{{ project.description }}</div>{% endif %}
+
+						{% if project.assets %}
+							{% set lightbox_index = 0 %}
+							<div class="project-assets {% if slab_options.enable_lightbox %}gallery{% endif %}">
+								{% for asset in project.assets %}
+									<div id="asset-{{ asset.id }}" class="{{ asset.type }}" {% if asset.type == 'image' %}data-index="{{ lightbox_index }}" {% set lightbox_index = lightbox_index + 1 %} {% endif %}>
+										{% if asset.type == "image" %}
+											{% if slab_options.enable_lightbox %}
+											<a href="{{ asset.full_url }}" data-size="{{ asset.full_width }}x{{ asset.full_height }}" class="view" rel="project-gallery-{{ project.id }}" data-thumb-src="{{ asset.content_url }}">
+											{% endif %}
+												<img srcset="{{ asset.content_srcset }}" alt="">
+											{% if slab_options.enable_lightbox %}
+											</a>
+											{% endif %}
+										{% else %}
+											{{ asset.embed }}
+										{% endif %}
+
+										{% if asset.description %}<p class="asset-description">{{ asset.description }}</p>{% endif %}
+									</div>
+								{% endfor %}
+							</div>
+						{% endif %}
+
+						{% if slab_options.show_project_meta and (project.date_text or project.client or project.role or project.url or project.tags) %}
+							<footer class="project-meta clearfix">
+								{% if project.date_text %}<div>Date: <span class="date">{{ project.date_text }}</span></div>{% endif %}
+								{% if project.client %}<div>Client: <span class="client">{{ project.client }}</span></div>{% endif %}
+								{% if project.role %}<div>Role: <span class="role">{{ project.role }}</span></div>{% endif %}
+								{% if project.url %}<div>URL: <a href="{{ project.url_escaped }}" class="url" target="_blank">{{ project.pretty_url }}</a></div>{% endif %}
+								{% if project.tags %}<div>Tags: <span class="tags">{% for tag in project.tags %}<a href="{{ tag.permalink }}">{{ tag.name }}</a>{% if loop.last != true %}<span class="sep">, </span>{% endif %}{% endfor %}</span></div>{% endif %}
+							</footer>
+						{% endif %}
+					</article>
+				{% endif %}
+
+				{% if is_page %}
+					<article id="page-{{ page.id }}" class="page">
+						{% if slab_options.show_page_titles %}<h1 class="title">{{ page.title }}</h1>{% endif %}
+						<div class="page-content">{{ page.content }}</div>
+					</article>
+				{% endif %}
+
+				{% if is_home or is_tag or (is_project and slab_options.show_project_thumbs) %}
+					<div class="projects-feed">
+						<div class="projects-feed-inner clearfix">
+
+							{% import _self as macros %}
+
+							{% if is_home or is_project %}
+								{% for project in projects %}
+									{{ macros.project(project, slab_options) }}
+								{% endfor %}
+							{% endif %}
+
+							{% if is_tag %}
+								{% for project in tagged_projects %}
+									{{ macros.project(project, slab_options) }}
+								{% endfor %}
+							{% endif %}
+
+							{% macro project(project, slab_options) %}
+								<article id="project-{{ project.id }}" class="project">
+									<a href="{{ project.permalink }}" title="Permalink to {{ project.title|e }}">
+										{% if project.thumb_url %}
+											<div class="thumb">
+												<img srcset="{{ project.thumb_srcset }}" alt="{{ project.title }}">
+											</div>
+										{% else %}
+											<div class="thumb no-thumb"></div>
+										{% endif %}
+										<div class="overlay">
+											{% if slab_options.show_thumbnail_titles %}<h3 class="title">{{ project.title }}</h3>{% endif %}
+										</div>
+									</a>
+								</article>
+							{% endmacro %}
+
+						<!--END .projects-feed-inner-->
+						</div>
+					<!--END .projects-feed-->
+					</div>
+				{# end home/project/tag check #}
+				{% endif %}
+
+			<!--END #content-->
+			</div>
+
+		<!--END #content-wrapper-->
+		</div>
+		<div style="clear:both;"></div>
+
+		{% if footer_text %}
+		<footer class="footer">
+			<p class="footer-text">{{ footer_text }} {{ dunked_branding() }}</p>
+		</footer>
+		{% endif %}
+
+	<!--END #wrapper-->
+	</div>
+
+	{% if is_project %}
+	<script type="text/javascript">
+	var project_assets = {{ project.assets|json_encode() }};
+	</script>
+	{% endif %}
+
+	{% if slab_options.enable_lightbox %}
+	{{ lightbox_code() }}
+	<script>
+	    // LoadCSS w/ rel=preload polyfill https://github.com/filamentgroup/loadCSS [c]2016 @scottjehl, Filament Group, Inc. Licensed MIT
+	    !function(a){"use strict";var b=function(b,c,d){function j(a){return e.body?a():void setTimeout(function(){j(a)})}function l(){f.addEventListener&&f.removeEventListener("load",l),f.media=d||"all"}var g,e=a.document,f=e.createElement("link");if(c)g=c;else{var h=(e.body||e.getElementsByTagName("head")[0]).childNodes;g=h[h.length-1]}var i=e.styleSheets;f.rel="stylesheet",f.href=b,f.media="only x",j(function(){g.parentNode.insertBefore(f,c?g:g.nextSibling)});var k=function(a){for(var b=f.href,c=i.length;c--;)if(i[c].href===b)return a();setTimeout(function(){k(a)})};return f.addEventListener&&f.addEventListener("load",l),f.onloadcssdefined=k,k(l),f};"undefined"!=typeof exports?exports.loadCSS=b:a.loadCSS=b}("undefined"!=typeof global?global:this),function(a){if(a.loadCSS){var b=loadCSS.relpreload={};if(b.support=function(){try{return a.document.createElement("link").relList.supports("preload")}catch(b){return!1}},b.poly=function(){for(var b=a.document.getElementsByTagName("link"),c=0;c<b.length;c++){var d=b[c];"preload"===d.rel&&"style"===d.getAttribute("as")&&(a.loadCSS(d.href,d),d.rel=null)}},!b.support()){b.poly();var c=a.setInterval(b.poly,300);a.addEventListener&&a.addEventListener("load",function(){a.clearInterval(c)}),a.attachEvent&&a.attachEvent("onload",function(){a.clearInterval(c)})}}}(this);
+	</script>
+	<script src="{{ cdn_base_url }}assets/dist/lightbox-dunked.min.js"></script>
+	{% endif %}
+	<script src="{{ cached_file_url({ base: template_base_url, path: '1/scripts/lib.min.js' }) }}"></script>
+	<!-- BEGIN Analytics -->
+	<script>
+	    window.ga=function(){ga.q.push(arguments)};ga.q=[];ga.l=+new Date;
+	    {% if analytics_code %}ga('create','{{ analytics_code }}','auto');{% else %}ga('create','UA-6564188-11','auto');{% endif %}ga('send','pageview')
+	</script>
+	<script src="https://www.google-analytics.com/analytics.js" async defer></script>
+	<!-- END Analytics -->
+	<script id="dunked-admin-bar-script" data-base="{{ site_url }}" src="{{ admin_bar_js }}"></script>
+</body>
+</html>
+
